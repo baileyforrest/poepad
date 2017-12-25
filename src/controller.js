@@ -7,7 +7,7 @@ const PID = [0x28E, 0x28F, 0x2D1]; // Searches for Xbox 360 Controller, Xbox 360
  // http://www.linux-usb.org/usb.ids
 
 class Controller {
-  static create() {
+  static create(stateChangeCb) {
     robot.setMouseDelay(0);
     robot.setKeyboardDelay(0);
 
@@ -23,11 +23,25 @@ class Controller {
       return null;
     }
 
-    return new Controller(hid);
+    return new Controller(hid, stateChangeCb);
   }
 
-  constructor(hid) {
+  static logState(state) {
+    for (let i = 0; i < Controller.Key.MAX_VALUE; ++i) {
+      if (state.keys & 1 << i) {
+        console.log(Controller.Key.toString[i]);
+      }
+    }
+
+    console.log('lstick_x: ' + state.lstick.x + ', lstick_y: ' + state.lstick.y);
+    console.log('rstick_x: ' + state.rstick.x + ', rstick_y: ' + state.rstick.y);
+    console.log('trigger: ' + state.trigger);
+  }
+
+  constructor(hid, stateChangeCb) {
     this.hid = hid;
+    this.stateChangeCb = stateChangeCb;
+
     this.hid.addListener('data', (data) => {
       this.onData(data);
     });
@@ -36,51 +50,57 @@ class Controller {
   onData(data) {
     assert(data.length >= 11);
 
-    let keys = [];
+    let keys = 0;
 
     let buttons0 = data[10];
 
     for (let i = 0; i < 8; ++i) {
       if ((buttons0 >> i) & 1) {
-        keys.push(BUTTON0_TO_KEY[i]);
+        keys |= 1 << BUTTON0_TO_KEY[i];
       }
     }
 
     let buttons1 = data[11];
     if (buttons1 & 1) {
-      keys.push(Controller.Key.LSTICK);
+      keys |= 1 << Controller.Key.LSTICK;
     }
 
     if (buttons1 & 0x2) {
-      keys.push(Controller.Key.RSTICK);
+      keys |= 1 << Controller.Key.RSTICK;
     }
 
     let dpad = (buttons1 >> 2) & 0xf;
     let dpad_keys = DPAD_TO_KEYS[dpad];
     for (let i = 0; i < dpad_keys.length; ++i) {
-      keys.push(dpad_keys[i]);
+      keys |= 1 << dpad_keys[i];
     }
 
     let lstick_x = data[0];
     lstick_x |= data[1] << 8;
+    lstick_x -= 1 << 15;
+
     let lstick_y = data[2];
     lstick_y |= data[3] << 8;
+    lstick_y -= 1 << 15;
 
     let rstick_x = data[4];
     rstick_x |= data[5] << 8;
+    rstick_x -= 1 << 15;
+
     let rstick_y = data[6];
     rstick_y |= data[7] << 8;
+    rstick_y -= 1 << 15;
 
     let trigger_val = data[9];
 
-    // TODO: Send to observer
-    for (let i = 0; i < keys.length; ++i) {
-      console.log(Controller.Key.toString[keys[i]]);
-    }
+    let state = {
+      lstick: { x: lstick_x, y: lstick_y },
+      rstick: { x: rstick_x, y: rstick_y },
+      keys: keys,
+      trigger: trigger_val,
+    };
 
-    console.log('lstick_x: ' + lstick_x + ', lstick_y: ' + lstick_y);
-    console.log('rstick_x: ' + rstick_x + ', rstick_y: ' + rstick_y);
-    console.log('trigger_val: ' + trigger_val);
+    this.stateChangeCb(state);
   }
 }
 
@@ -99,6 +119,8 @@ Controller.Key = {
   DPAD_RIGHT:11,
   DPAD_DOWN:12,
   DPAD_LEFT:13,
+
+  MAX_VALUE:14,
 };
 
 let KEY_TO_STRING = [
