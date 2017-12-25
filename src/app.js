@@ -1,6 +1,10 @@
 let Controller = require('./controller');
+let Input = require('./input');
 
-let controller = Controller.create(Controller.logState);
+let input = new Input();
+let controller = Controller.create(state => {
+  input.onControllerState(state);
+});
 
 if (!controller) {
   console.log('Could not find controller');

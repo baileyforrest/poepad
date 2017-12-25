@@ -1,7 +1,9 @@
 let assert = require('assert');
 let robot = require('robotjs');
+let HID = require('node-hid');
 
-var HID = require ('node-hid');
+let Vec2 = require('./vec2');
+
 const VID = 0x45E; // Microsoft
 const PID = [0x28E, 0x28F, 0x2D1]; // Searches for Xbox 360 Controller, Xbox 360 Wifi Controller and Xbox One Controller
  // http://www.linux-usb.org/usb.ids
@@ -75,27 +77,40 @@ class Controller {
       keys |= 1 << dpad_keys[i];
     }
 
+    function normalize_axis(value) {
+      if (value == 0) {
+        value = 1;
+      }
+      value -= 1 << 15;
+      value /= ((1 << 15) - 1);
+      return value;
+    }
+
     let lstick_x = data[0];
     lstick_x |= data[1] << 8;
-    lstick_x -= 1 << 15;
+    lstick_x = normalize_axis(lstick_x);
 
     let lstick_y = data[2];
     lstick_y |= data[3] << 8;
-    lstick_y -= 1 << 15;
+    lstick_y = normalize_axis(lstick_y);
 
     let rstick_x = data[4];
     rstick_x |= data[5] << 8;
-    rstick_x -= 1 << 15;
+    rstick_x = normalize_axis(rstick_x);
 
     let rstick_y = data[6];
     rstick_y |= data[7] << 8;
-    rstick_y -= 1 << 15;
+    rstick_y = normalize_axis(rstick_y);
 
-    let trigger_val = data[9];
+    let trigger_val = data[9] - 128;
+    if (trigger_val == -128) {
+      trigger_val = -127;
+    }
+    trigger_val /= 127;
 
     let state = {
-      lstick: { x: lstick_x, y: lstick_y },
-      rstick: { x: rstick_x, y: rstick_y },
+      lstick: new Vec2(lstick_x, lstick_y),
+      rstick: new Vec2(rstick_x, rstick_y),
       keys: keys,
       trigger: trigger_val,
     };
