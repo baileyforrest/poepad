@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/baileyforrest/poepad/issues"
   },
-  "homepage": "https://github.com/baileyforrest/poepad#readme"
+  "homepage": "https://github.com/baileyforrest/poepad#readme",
+  "dependencies": {
+    "robotjs": "^0.4.7"
+  }
 }
