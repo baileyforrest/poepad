@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/baileyforrest/poepad#readme",
   "dependencies": {
+    "node-hid": "^0.5.7",
     "robotjs": "^0.4.7"
   }
 }
