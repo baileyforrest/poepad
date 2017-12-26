@@ -17,13 +17,24 @@ class Input {
     this.screen_height = robot.getScreenSize().height;
     this.middle = new Vec2(this.screen_width / 2, this.screen_height * MIDDLE_OFFSET);
     this.move_radius = this.screen_height * MOVE_RADIUS_FRACTION;
+    this.move_radius_override = null;
     this.max_mouse_speed_slow = this.screen_height / 400;
     this.max_mouse_speed_fast = this.screen_height / 50;
+    this.direction = new Vec2(1, 0);
     this.mouse_velocity = new Vec2();
     this.mouse_pressed = false;
     this.keys = 0;
+    this.key_to_action = {};
 
     setInterval(() => this.onMouseMoveTimer(), MOUSE_MOVE_INTERVAL_MS);
+  }
+
+  registerAction(key, action) {
+    if (key in this.key_to_action) {
+      throw 'Key already has registered action';
+    }
+
+    this.key_to_action[key] = action;
   }
 
   onMouseMoveTimer() {
@@ -52,6 +63,21 @@ class Input {
       }
     }
 
+    for (let key = 0; key < Controller.Key.MAX_VALUE; ++key) {
+      // No registered action.
+      if (!(key in this.key_to_action)) {
+        continue;
+      }
+
+      let pressed = (state.keys & (1 << key)) ? true : false;
+      this.key_to_action[key].do(pressed);
+    }
+  }
+
+  updateMousePos() {
+    let radius = this.move_radius_override != null ? this.move_radius_override : this.move_radius;
+    let mouse_pos = Vec2.add(this.middle, this.direction.multiply(radius));
+    robot.moveMouse(mouse_pos.x, mouse_pos.y);
   }
 
   processLStick(lstick) {
@@ -63,9 +89,8 @@ class Input {
       return;
     }
 
-    let normal = lstick.normal();
-    let mouse_pos = Vec2.add(this.middle, normal.multiply(this.move_radius));
-    robot.moveMouse(mouse_pos.x, mouse_pos.y);
+    this.direction = lstick.normal();
+    this.updateMousePos();
 
     if (!this.moving) {
       //robot.mouseToggle("down");
@@ -87,6 +112,11 @@ class Input {
       }
       this.mouse_velocity = rstick.multiply(magnitude);
     }
+  }
+
+  overrideRadius(radius) {
+    this.move_radius_override = radius;
+    this.updateMousePos();
   }
 }
 
