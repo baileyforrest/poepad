@@ -1,5 +1,6 @@
-let robot = require('./robot');
+let assert = require('assert');
 
+let robot = require('./robot');
 let Controller = require('./controller');
 let Vec2 = require('./vec2');
 
@@ -7,7 +8,7 @@ const LSTICK_THRESHOLD = .25;
 const RSTICK_THRESHOLD = .16;
 const TRIGGER_THRESHOLD = .10;
 const MIDDLE_OFFSET = 0.44;
-const MOVE_RADIUS_FRACTION  = .105;
+const MOVE_RADIUS_FRACTION  = .15;
 const MOUSE_MOVE_INTERVAL_MS = 10;
 
 class Input {
@@ -16,6 +17,7 @@ class Input {
     robot.setKeyboardDelay(0);
 
     this.moving = false;
+    this.move_override_count = 0;
     this.screen_width = robot.getScreenSize().width;
     this.screen_height = robot.getScreenSize().height;
     this.middle = new Vec2(this.screen_width / 2, this.screen_height * MIDDLE_OFFSET);
@@ -61,7 +63,7 @@ class Input {
     this.controller_state = state;
     this.processLStick(state.lstick);
 
-    if (!this.moving) {
+    if (!this.moving && this.move_override_count == 0) {
       this.processRStick(state.rstick);
 
       // Right trigger is click.
@@ -91,14 +93,24 @@ class Input {
 
   updatePlayerMousePos() {
     let radius = this.move_radius_override != null ? this.move_radius_override : this.move_radius;
-    let mouse_pos = Vec2.add(this.middle, this.direction.multiply(radius));
+
+    // Account for perspective
+    let copy = this.direction.copy();
+    if (copy.y < 0) {
+      copy.y *= .8;
+    } else {
+      copy.y *= 1.1;
+    }
+    let mouse_pos = Vec2.add(this.middle, copy.multiply(radius));
     this.moveMouse(mouse_pos.x, mouse_pos.y);
   }
 
   processLStick(lstick) {
     if (lstick.magnitude() < LSTICK_THRESHOLD) {
       if (this.moving) {
-        //robot.mouseToggle("up");
+        if (this.move_override_count == 0) {
+          robot.mouseToggle("up");
+        }
         this.moving = false;
       }
       return;
@@ -108,7 +120,10 @@ class Input {
     this.updatePlayerMousePos();
 
     if (!this.moving) {
-      //robot.mouseToggle("down");
+      this.moving = true;
+      if (this.move_override_count == 0) {
+        robot.mouseToggle("down");
+      }
     }
   }
 
@@ -117,7 +132,7 @@ class Input {
     if (magnitude < RSTICK_THRESHOLD) {
       this.mouse_velocity = new Vec2;
     } else {
-      magnitude = (Math.pow(64, magnitude) - 1) / 64;
+      magnitude = (Math.pow(16, magnitude) - 1) / 16;
 
       // Left trigger.
       if (this.controller_state.trigger > TRIGGER_THRESHOLD) {
@@ -132,6 +147,22 @@ class Input {
   overrideRadius(radius) {
     this.move_radius_override = radius;
     this.updatePlayerMousePos();
+  }
+
+  overrideMove(can_move) {
+    if (can_move) {
+      assert(this.move_override_count > 0);
+      this.move_override_count -= 1;
+    } else {
+      this.move_override_count += 1;
+    }
+    if (this.moving) {
+      if (this.move_override_count > 0) {
+        robot.mouseToggle("up");
+      } else {
+        robot.mouseToggle("down");
+      }
+    }
   }
 }
 

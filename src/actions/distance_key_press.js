@@ -1,7 +1,6 @@
 
-let robot = require('../robot');
-
 let KeyPress = require('./key_press');
+const DELAY = 10;
 
 class DistanceKeyPress extends KeyPress {
   constructor(input, key, distance) {
@@ -12,9 +11,14 @@ class DistanceKeyPress extends KeyPress {
   onPressChanged(pressed) {
     if (pressed) {
       this.input.overrideRadius(this.distance);
-      robot.keyToggle(this.key, 'down');
+      setTimeout(() => {
+        this.toggle(true)
+        if (!this.pressed) {
+          this.toggle(false)
+        }
+      }, DELAY);
     } else {
-      robot.keyToggle(this.key, 'up');
+      this.toggle(false);
       this.input.overrideRadius(null);
     }
   }

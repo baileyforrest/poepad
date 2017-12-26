@@ -1,11 +1,9 @@
 let Controller = require('./controller');
 let Input = require('./input');
-let KeyPressAction = require('./actions/key_press');
-let DistanceKeyPressAction = require('./actions/distance_key_press');
+let config = require('./config');
 
 let input = new Input();
-input.registerAction(Controller.Key.A, new KeyPressAction(input, 'a'));
-input.registerAction(Controller.Key.B, new DistanceKeyPressAction(input, 'b', 200));
+config.register(input);
 
 let controller = Controller.create(state => {
   input.onControllerState(state);

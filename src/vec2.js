@@ -6,6 +6,10 @@ class Vec2 {
     this.y = y;
   }
 
+  copy() {
+    return new Vec2(this.x, this.y);
+  }
+
   magnitude() {
     return Math.sqrt(this.x * this.x + this.y * this.y);
   }
