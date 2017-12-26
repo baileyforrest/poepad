@@ -1,4 +1,4 @@
-let robot = require('robotjs');
+let robot = require('./robot');
 
 let Controller = require('./controller');
 let Vec2 = require('./vec2');
@@ -12,6 +12,9 @@ const MOUSE_MOVE_INTERVAL_MS = 10;
 
 class Input {
   constructor() {
+    robot.setMouseDelay(0);
+    robot.setKeyboardDelay(0);
+
     this.moving = false;
     this.screen_width = robot.getScreenSize().width;
     this.screen_height = robot.getScreenSize().height;
@@ -37,9 +40,21 @@ class Input {
     this.key_to_action[key] = action;
   }
 
-  onMouseMoveTimer() {
+  moveMouse(x, y) {
     let pos = robot.getMousePos();
-    robot.moveMouse(pos.x + this.mouse_velocity.x, pos.y + this.mouse_velocity.y);
+    if (x == pos.x && y == pos.y) {
+      return;
+    }
+
+    robot.moveMouse(x, y);
+  }
+
+  onMouseMoveTimer() {
+    if (this.mouse_velocity.magnitude() == 0) {
+      return;
+    }
+    let pos = robot.getMousePos();
+    this.moveMouse(pos.x + this.mouse_velocity.x, pos.y + this.mouse_velocity.y);
   }
 
   onControllerState(state) {
@@ -74,10 +89,10 @@ class Input {
     }
   }
 
-  updateMousePos() {
+  updatePlayerMousePos() {
     let radius = this.move_radius_override != null ? this.move_radius_override : this.move_radius;
     let mouse_pos = Vec2.add(this.middle, this.direction.multiply(radius));
-    robot.moveMouse(mouse_pos.x, mouse_pos.y);
+    this.moveMouse(mouse_pos.x, mouse_pos.y);
   }
 
   processLStick(lstick) {
@@ -90,7 +105,7 @@ class Input {
     }
 
     this.direction = lstick.normal();
-    this.updateMousePos();
+    this.updatePlayerMousePos();
 
     if (!this.moving) {
       //robot.mouseToggle("down");
@@ -116,7 +131,7 @@ class Input {
 
   overrideRadius(radius) {
     this.move_radius_override = radius;
-    this.updateMousePos();
+    this.updatePlayerMousePos();
   }
 }
 

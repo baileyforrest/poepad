@@ -1,5 +1,4 @@
 let assert = require('assert');
-let robot = require('robotjs');
 let HID = require('node-hid');
 
 let Vec2 = require('./vec2');
@@ -10,9 +9,6 @@ const PID = [0x28E, 0x28F, 0x2D1]; // Searches for Xbox 360 Controller, Xbox 360
 
 class Controller {
   static create(stateChangeCb) {
-    robot.setMouseDelay(0);
-    robot.setKeyboardDelay(0);
-
     let hid = null;
     for (let i = 0; i < PID.length; ++i) {
       try {

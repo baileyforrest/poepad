@@ -1,4 +1,4 @@
-let robot = require('robotjs');
+let robot = require('../robot');
 
 let Action = require('../action');
 

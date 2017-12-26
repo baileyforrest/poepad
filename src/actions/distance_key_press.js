@@ -1,5 +1,5 @@
 
-let robot = require('robotjs');
+let robot = require('../robot');
 
 let KeyPress = require('./key_press');
 
