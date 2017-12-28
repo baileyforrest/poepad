@@ -23,7 +23,7 @@ class Input {
     this.middle = new Vec2(this.screen_width / 2, this.screen_height * MIDDLE_OFFSET);
     this.move_radius = this.screen_height * MOVE_RADIUS_FRACTION;
     this.move_radius_override = null;
-    this.max_mouse_speed_slow = this.screen_height / 400;
+    this.max_mouse_speed_slow = this.screen_height / 200;
     this.max_mouse_speed_fast = this.screen_height / 50;
     this.direction = new Vec2(1, 0);
     this.mouse_velocity = new Vec2();
