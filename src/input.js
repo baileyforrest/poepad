@@ -17,6 +17,7 @@ class Input {
     robot.setKeyboardDelay(0);
 
     this.moving = false;
+    this.reached_move_target = false;
     this.move_override_count = 0;
     this.screen_width = robot.getScreenSize().width;
     this.screen_height = robot.getScreenSize().height;
@@ -26,8 +27,10 @@ class Input {
     this.max_mouse_speed_slow = this.screen_height / 200;
     this.max_mouse_speed_fast = this.screen_height / 50;
     this.direction = new Vec2(1, 0);
+    this.mouse_target = null;
     this.mouse_velocity = new Vec2();
     this.mouse_pressed = false;
+    this.lstick_mouse_speed = this.screen_height / 25;
     this.keys = 0;
     this.key_to_action = {};
 
@@ -52,10 +55,37 @@ class Input {
   }
 
   onMouseMoveTimer() {
+    let pos = robot.getMousePos();
+    if (this.mouse_target != null) {
+      let dist = Vec2.sub(this.mouse_target, new Vec2(pos.x, pos.y));
+      let magnitude = dist.magnitude();
+      if (magnitude < 3.0) {
+        if (this.moving && !this.reached_move_target) {
+          this.reached_move_target = true;
+          if (this.move_override_count == 0) {
+            robot.mouseToggle("up");
+            robot.mouseToggle("down");
+          }
+        }
+        this.mouse_target = null;
+        return;
+      }
+
+      if (magnitude > this.move_radius) {
+        this.moveMouse(this.mouse_target.x, this.mouse_target.y);
+        this.mouse_target = 0;
+        return;
+      }
+
+      let speed = magnitude < this.lstick_mouse_speed ? magnitude : this.lstick_mouse_speed;
+
+      let delta = dist.normal().multiply(speed);
+      this.moveMouse(pos.x + delta.x, pos.y + delta.y);
+      return;
+    }
     if (this.mouse_velocity.magnitude() == 0) {
       return;
     }
-    let pos = robot.getMousePos();
     this.moveMouse(pos.x + this.mouse_velocity.x, pos.y + this.mouse_velocity.y);
   }
 
@@ -91,7 +121,7 @@ class Input {
     }
   }
 
-  updatePlayerMousePos() {
+  updatePlayerMousePos(immediate) {
     let radius = this.move_radius_override != null ? this.move_radius_override : this.move_radius;
 
     // Account for perspective
@@ -101,8 +131,10 @@ class Input {
     } else {
       copy.y *= 1.1;
     }
-    let mouse_pos = Vec2.add(this.middle, copy.multiply(radius));
-    this.moveMouse(mouse_pos.x, mouse_pos.y);
+    this.mouse_target = Vec2.add(this.middle, copy.multiply(radius));
+    if (immediate) {
+      this.moveMouse(this.mouse_target.x, this.mouse_target.y);
+    }
   }
 
   processLStick(lstick) {
@@ -112,18 +144,19 @@ class Input {
           robot.mouseToggle("up");
         }
         this.moving = false;
+        this.mouse_target = null;
       }
       return;
     }
 
+    this.mouse_velocity = new Vec2;
+
     this.direction = lstick.normal();
-    this.updatePlayerMousePos();
+    this.updatePlayerMousePos(false);
 
     if (!this.moving) {
       this.moving = true;
-      if (this.move_override_count == 0) {
-        robot.mouseToggle("down");
-      }
+      this.reached_move_target = false;
     }
   }
 
@@ -146,7 +179,7 @@ class Input {
 
   overrideRadius(radius) {
     this.move_radius_override = radius;
-    this.updatePlayerMousePos();
+    this.updatePlayerMousePos(true);
   }
 
   overrideMove(can_move) {
